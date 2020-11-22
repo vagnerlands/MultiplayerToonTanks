@@ -50,7 +50,8 @@ private:
 	UForceFeedbackEffect* ForceFeedbackOnHit;
 
 	// get the player reference
-	class AActor* PlayerPawnReference;
+	class AActor* PlayerOnePawnReference;
+	class AActor* PlayerTwoPawnReference;
 
 	// Listeners
 	UFUNCTION()

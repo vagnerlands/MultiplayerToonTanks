@@ -9,9 +9,40 @@
 #include "GameFramework/Actor.h"
 #include "ToonTanks/Pawns/PawnTank.h"
 
-float APawnTurret::DistanceToPlayer() const
+float APawnTurret::DistanceToPlayer(APawnTank* player) const
 {
-	return FVector::Dist(PlayerPawnReference->GetActorLocation(), GetActorLocation());
+	return FVector::Dist(player->GetActorLocation(), GetActorLocation());
+}
+
+APawnTank* APawnTurret::SelectClosestPlayer() const
+{
+	// local references for calculations
+	APawnTank* AdjustedReferencePlayerOne = PlayerOnePawnReference;
+	APawnTank* AdjustedReferencePlayerTwo = PlayerTwoPawnReference;
+
+	// calculate distance from this turret to each player
+	const float DistanceToPlayerOne = DistanceToPlayer(PlayerOnePawnReference);
+	const float DistanceToPlayerTwo = DistanceToPlayer(PlayerTwoPawnReference);
+
+	// if a player is out of range or is not alive, as disregard him
+	if ((DistanceToPlayerOne > FireRange) || (!PlayerOnePawnReference->IsPlayerAlive()))
+	{
+		AdjustedReferencePlayerOne = nullptr;
+	}
+
+	if ((DistanceToPlayerTwo > FireRange) || (!PlayerTwoPawnReference->IsPlayerAlive()))
+	{
+		AdjustedReferencePlayerTwo = nullptr;
+	}
+	
+	// if one player is valid, but the other not, then returns the valid player anyways
+	if ((!AdjustedReferencePlayerOne) && (AdjustedReferencePlayerTwo)) return AdjustedReferencePlayerTwo;
+	if ((AdjustedReferencePlayerOne) && (!AdjustedReferencePlayerTwo)) return AdjustedReferencePlayerOne;
+	
+	// otherwise return the "closest" player
+	// note: in invalid cases, the value will be nullptr
+	return (DistanceToPlayerOne < DistanceToPlayerTwo) ? AdjustedReferencePlayerOne : AdjustedReferencePlayerTwo;
+
 }
 
 // Called when the game starts or when spawned
@@ -23,7 +54,17 @@ void APawnTurret::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(FireRateTimerHandle, this, &APawnTurret::HoldOnFire, 3.f, false);
 
 	// get the player reference
-	PlayerPawnReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 0));
+	PlayerOnePawnReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 0));
+	if (!PlayerOnePawnReference)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PawnTurret - Bad player One"))
+	}
+
+	PlayerTwoPawnReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 1));
+	if (!PlayerTwoPawnReference)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PawnTurret - Bad player Two"))
+	}
 }
 
 void APawnTurret::HandleDestruction()
@@ -42,15 +83,10 @@ void APawnTurret::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!PlayerPawnReference
-		|| (!PlayerPawnReference->IsPlayerAlive())
-		|| (DistanceToPlayer() > FireRange))
+	if (APawnTank* player = SelectClosestPlayer())
 	{
-		return;
+		RotateTurret(player->GetActorLocation());
 	}
-
-	//UE_LOG(LogTemp, Warning, TEXT("Turret %s rotates %s"), *GetName(), *TargetRotation.ToString())
-	RotateTurret(PlayerPawnReference->GetActorLocation());
 }
 
 // Called to bind functionality to input
@@ -67,23 +103,10 @@ void APawnTurret::HoldOnFire()
 
 void APawnTurret::CheckFireCondition()
 {
-	// check if Player != nullptr (if null, player is dead/out of the game)
-	if ((!PlayerPawnReference) 
-		|| (!PlayerPawnReference->IsPlayerAlive()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Player is already dead!"))
-		return;
-	}
-
-	if (DistanceToPlayer() <= FireRange)
+	if (APawnTank* player = SelectClosestPlayer())
 	{
 		// if player is in range and we're ready to fire, then FIRE!
 		Fire();
 	}
-	else
-	{
-		UE_LOG(LogTemp, Display, TEXT("Player is too far :( %s"), *PlayerPawnReference->GetName())
-	}
-
 }
 

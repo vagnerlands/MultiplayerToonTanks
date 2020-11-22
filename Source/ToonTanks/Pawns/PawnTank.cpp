@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
 void APawnTank::CalculateMoveInput(float Value)

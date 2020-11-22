@@ -28,9 +28,12 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Fire", meta = (AllowPrivateAccess = "true"))
 	float FireRange = 500.f;
 
-	APawnTank* PlayerPawnReference = nullptr;
+	APawnTank* PlayerOnePawnReference = nullptr;
+	APawnTank* PlayerTwoPawnReference = nullptr;
 
-	float DistanceToPlayer() const;
+	float DistanceToPlayer(APawnTank* player) const;
+
+	APawnTank* SelectClosestPlayer() const;
 
 
 protected:

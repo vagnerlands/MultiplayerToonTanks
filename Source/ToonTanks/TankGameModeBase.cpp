@@ -13,6 +13,9 @@ void ATankGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// and create the next player - (but only once)
+	UGameplayStatics::CreatePlayer(GetWorld(), 1, true);
+
 	HandleGameStart();
 }
 
@@ -22,20 +25,28 @@ void ATankGameModeBase::HandleGameStart()
 
 	UE_LOG(LogTemp, Warning, TEXT("GameMode found %d turrets in the game"), numberOfTurrets)
 
-	PlayerReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 0));
-	if (!PlayerReference)
+	GameStart();
+
+	PlayerOneReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 0));
+	if (!PlayerOneReference)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Player Pawn couldn't be found in the game!"))
+		UE_LOG(LogTemp, Error, TEXT("Player One Pawn couldn't be found in the game!"))
 	}
 
-	PlayerControllerReference = Cast<ATankPlayerControllerBase>(UGameplayStatics::GetPlayerController(this, 0));
-	if (PlayerControllerReference)
+	PlayerTwoReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 1));
+	if (!PlayerTwoReference)
 	{
-		PlayerControllerReference->SetPlayerEnabledState(false);
+		UE_LOG(LogTemp, Error, TEXT("Player Two Pawn couldn't be found in the game!"))
+	}
+
+	PlayerOneControllerReference = Cast<ATankPlayerControllerBase>(UGameplayStatics::GetPlayerController(this, 0));
+	if (PlayerOneControllerReference)
+	{
+		PlayerOneControllerReference->SetPlayerEnabledState(false);
 
 		// creates a timed event to happen 
 		FTimerHandle PlayerEnableHandle;
-		FTimerDelegate PlayerEnableDelegate = FTimerDelegate::CreateUObject(PlayerControllerReference, &ATankPlayerControllerBase::SetPlayerEnabledState, true);
+		FTimerDelegate PlayerEnableDelegate = FTimerDelegate::CreateUObject(PlayerOneControllerReference, &ATankPlayerControllerBase::SetPlayerEnabledState, true);
 		GetWorld()->GetTimerManager().SetTimer(PlayerEnableHandle, PlayerEnableDelegate, static_cast<float>(StartDelay), false);
 	}
 	else
@@ -43,7 +54,20 @@ void ATankGameModeBase::HandleGameStart()
 		UE_LOG(LogTemp, Error, TEXT("Player Controller couldn't be found in the game!"))
 	}
 
-	GameStart();
+	PlayerTwoControllerReference = Cast<ATankPlayerControllerBase>(UGameplayStatics::GetPlayerController(this, 1));
+	if (PlayerTwoControllerReference)
+	{
+		PlayerTwoControllerReference->SetPlayerEnabledState(false);
+
+		// creates a timed event to happen 
+		FTimerHandle PlayerEnableHandle;
+		FTimerDelegate PlayerEnableDelegate = FTimerDelegate::CreateUObject(PlayerTwoControllerReference, &ATankPlayerControllerBase::SetPlayerEnabledState, true);
+		GetWorld()->GetTimerManager().SetTimer(PlayerEnableHandle, PlayerEnableDelegate, static_cast<float>(StartDelay), false);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Player Controller couldn't be found in the game!"))
+	}
 }
 
 void ATankGameModeBase::HandleGameOver(bool playerWon)
@@ -53,22 +77,30 @@ void ATankGameModeBase::HandleGameOver(bool playerWon)
 	GameOver(playerWon);
 
 	FTimerHandle GameRestartHandle;
-	GetWorld()->GetTimerManager().SetTimer(GameRestartHandle, this, &ATankGameModeBase::RestartGame, 2.f, false);
+	GetWorld()->GetTimerManager().SetTimer(GameRestartHandle, this, &ATankGameModeBase::RestartGame, 4.f, false);
 }
 
 void ATankGameModeBase::ActorDied(AActor* DeadActor)
 {
-	if (DeadActor == PlayerReference)
+	if ((PlayerOneReference == DeadActor) || (PlayerTwoReference == DeadActor))
 	{
-		if (PlayerControllerReference)
+		if (PlayerOneReference == DeadActor)
 		{
-			PlayerControllerReference->SetPlayerEnabledState(false);
+			PlayerOneControllerReference->SetPlayerEnabledState(false);
+			// do not use "PlayerControllerReference" after calling this method, it's no longer valid
+			PlayerOneReference->HandleDestruction();
+			PlayerOneControllerReference = nullptr;
 		}
-		// do not use "PlayerControllerReference" after calling this method, it's no longer valid
-		PlayerReference->HandleDestruction();
-		PlayerControllerReference = nullptr;
+		if (PlayerTwoReference == DeadActor)
+		{
+			PlayerTwoControllerReference->SetPlayerEnabledState(false);
+			// do not use "PlayerControllerReference" after calling this method, it's no longer valid
+			PlayerTwoReference->HandleDestruction();
+			PlayerTwoControllerReference = nullptr;
+		}
 
-		HandleGameOver(false);
+		if (++DeadPlayersCount >= 2)
+			HandleGameOver(false);
 	}
 	else if (APawnTurret* TurretReference = Cast<APawnTurret>(DeadActor))
 	{

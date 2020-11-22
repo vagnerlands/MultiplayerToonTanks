@@ -33,7 +33,8 @@ AProjectileBase::AProjectileBase()
 
 	// EFFECTS 
 	ForceFeedbackOnHit = CreateDefaultSubobject<UForceFeedbackEffect>(TEXT("Force feedback on HIT"));
-	PlayerPawnReference = Cast<AActor>(UGameplayStatics::GetPlayerPawn(this, 0));
+	PlayerOnePawnReference = Cast<AActor>(UGameplayStatics::GetPlayerPawn(this, 0));
+	PlayerTwoPawnReference = Cast<AActor>(UGameplayStatics::GetPlayerPawn(this, 1));
 	//UE_LOG(LogTemp, Warning, TEXT(" retrieved player actor reference address 0x%x"), &*PlayerPawnReference);
 
 
@@ -70,16 +71,32 @@ void AProjectileBase::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UP
 			}
 
 			// only play animations like these if the affected actor is the player
-			if (PlayerPawnReference && (PlayerPawnReference == OtherActor))
+			if (PlayerOnePawnReference && (PlayerOnePawnReference == OtherActor))
 			{
 				if (ForceFeedbackOnHit)
 				{
 					UGameplayStatics::SpawnForceFeedbackAtLocation(this, ForceFeedbackOnHit, Hit.Location);
 				}
-				UE_LOG(LogTemp, Warning, TEXT(" ***** PLAYER WAS HIT ***** "));
+				UE_LOG(LogTemp, Warning, TEXT(" ***** PLAYER 1 WAS HIT ***** "));
 				if (HitShake)
 				{
-					GetWorld()->GetFirstPlayerController()->ClientPlayCameraShake(HitShake);
+					
+					UGameplayStatics::GetPlayerController(GetWorld(), 0)->ClientPlayCameraShake(HitShake);
+					UE_LOG(LogTemp, Warning, TEXT(" Played HitShake!"));
+				}
+			}
+
+			// only play animations like these if the affected actor is the player
+			if (PlayerTwoPawnReference && (PlayerTwoPawnReference == OtherActor))
+			{
+				if (ForceFeedbackOnHit)
+				{
+					UGameplayStatics::SpawnForceFeedbackAtLocation(this, ForceFeedbackOnHit, Hit.Location);
+				}
+				UE_LOG(LogTemp, Warning, TEXT(" ***** PLAYER 2 WAS HIT ***** "));
+				if (HitShake)
+				{
+					UGameplayStatics::GetPlayerController(GetWorld(), 1)->ClientPlayCameraShake(HitShake);
 					UE_LOG(LogTemp, Warning, TEXT(" Played HitShake!"));
 				}
 			}

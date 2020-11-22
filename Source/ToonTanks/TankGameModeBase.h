@@ -15,8 +15,10 @@ class TOONTANKS_API ATankGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 private:
-	class APawnTank* PlayerReference;
-	class ATankPlayerControllerBase* PlayerControllerReference;
+	class APawnTank* PlayerOneReference;
+	class APawnTank* PlayerTwoReference;
+	class ATankPlayerControllerBase* PlayerOneControllerReference;
+	class ATankPlayerControllerBase* PlayerTwoControllerReference;
 	int32 numberOfTurrets = 0;
 
 	void HandleGameStart();
@@ -27,6 +29,8 @@ private:
 protected:
 	UPROPERTY (EditDefaultsOnly, BlueprintReadOnly, Category="Setup")
 	int32 StartDelay = 3;
+
+	int DeadPlayersCount = 0;
 
 public:
 	void ActorDied(AActor* DeadActor);

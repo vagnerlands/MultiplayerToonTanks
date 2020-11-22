@@ -18,7 +18,8 @@ private:
 	float Health;
 
 	class ATankGameModeBase* GameModeReference;
-	class APawnTank* PlayerPawnReference;
+	class APawnTank* PlayerOnePawnReference;
+	class APawnTank* PlayerTwoPawnReference;
 
 public:	
 	// Sets default values for this component's properties

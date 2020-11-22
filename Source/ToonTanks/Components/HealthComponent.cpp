@@ -22,7 +22,6 @@ void UHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	PlayerPawnReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 0));
 	// not safe
 	GameModeReference = Cast<ATankGameModeBase>(UGameplayStatics::GetGameMode(this));
 	GetOwner()->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::TakeDamager);
@@ -55,11 +54,21 @@ void UHealthComponent::TakeDamager(AActor* DamagedActor, float Damage, const UDa
 		GameModeReference->ActorDied(GetOwner());
 	}
 
-	if (Cast<AActor>(PlayerPawnReference) == DamagedActor)
-	{
-		PlayerPawnReference->UpdateHealthBar(Health, DefaultHealth);
-	}
+	PlayerOnePawnReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 0));
+	PlayerTwoPawnReference = Cast<APawnTank>(UGameplayStatics::GetPlayerPawn(this, 1));
 
+	if (Cast<AActor>(PlayerOnePawnReference) == DamagedActor)
+	{
+		PlayerOnePawnReference->UpdateHealthBar(Health, DefaultHealth);
+	}
+	else if (Cast<AActor>(PlayerTwoPawnReference) == DamagedActor)
+	{
+		PlayerTwoPawnReference->UpdateHealthBar(Health, DefaultHealth);
+	}
+	else
+	{
+		// empty clause
+	}
 
 }
 
